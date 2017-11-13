@@ -5,6 +5,7 @@ var UserController = require('../controllers/user');
 
 var api = express.Router();
 var auth = require('../middlewares/authenticate');
+var checkAdmin = require('../middlewares/isAdmin');
 
 api.get('/pruebauser', auth.ensureAuth ,UserController.pruebas);
 api.post('/register', UserController.saveUser);
