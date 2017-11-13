@@ -4,6 +4,8 @@ var bcrypt = require('bcrypt-nodejs');
 
 var User = require('../models/user');
 
+var jwt = require('../services/jwt');
+
 function pruebas(req, res) {
     res.status(200).send({
         message: "Probando el controlador users"
@@ -51,7 +53,7 @@ function saveUser(req, res) {
                             }
                         })
                     });
-                }else {
+                } else {
                     res.status(200).send({
                         message: "Ya existe un usuario con ese email"
                     });
@@ -72,41 +74,79 @@ function login(req, res) {
 
     var email = params.email;
     var password = params.password
-    if (params.password &&  params.email) {
-        User.findOne({email: email.toLowerCase()}, (err,issetUser)=>{
-            if(err){
+    if (params.password && params.email) {
+        User.findOne({ email: email.toLowerCase() }, (err, issetUser) => {
+            if (err) {
                 res.status(500).send({
                     message: 'Error al comprobar usuario'
                 });
-            }else{
-                if (issetUser){
-                    bcrypt.compare(password, issetUser.password, (err, check)=>{
-                        if(check){
-                            res.status(200).send(issetUser);
+            } else {
+                if (issetUser) {
+                    bcrypt.compare(password, issetUser.password, (err, check) => {
+                        if (check) {
+                            if (params.gettoken){
+                                res.status(200).send({
+                                    token : jwt.createToken(issetUser)
+                                });
+                            }else{
+                                res.status(200).send(issetUser);
+                            }
 
-                        }else{
+
+                        } else {
                             res.status(404).send({
                                 message: "Contraseña incorrecta"
                             });
                         }
                     });
-                    
-                }else {
+
+                } else {
                     res.status(404).send({
                         message: 'El usuario no existe'
                     });
                 }
             }
         });
-    }else {
+    } else {
         res.status(200).send({
             message: "Introduzca correctamente los valores"
         })
     }
 }
 
-    module.exports = {
-        pruebas,
-        saveUser, 
-        login
+function updateUser(req, res) {
+    var userId = req.params.id;
+    var update = req.body;
+
+    if(userId != req.user.sub){
+        return res.status(500).send({
+            message: 'No tienes permiso para actualizar el usuario'
+        });
     }
+
+    User.findByIdAndUpdate(userId, update, {new :true}, (err, userUpdated)=>{
+        if(err){
+            res.status(500).send({
+                message: 'Error al actualizar usuario'
+            });
+        }else {
+            if(!userUpdated){
+                res.status(404).send({
+                    message: 'No se ha podido actualizar el usuario'
+                });
+            }else{
+                res.status(200).send({user:userUpdated});
+            }
+        }
+    });
+
+}
+    
+
+
+module.exports = {
+    pruebas,
+    saveUser,
+    login,
+    updateUser
+}
