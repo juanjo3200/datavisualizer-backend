@@ -6,11 +6,6 @@ var User = require('../models/user');
 
 var jwt = require('../services/jwt');
 
-function pruebas(req, res) {
-    res.status(200).send({
-        message: "Probando el controlador users"
-    });
-}
 
 function saveUser(req, res) {
 
@@ -46,6 +41,7 @@ function saveUser(req, res) {
                                         message: 'No se ha registrado el usuario'
                                     });
                                 } else {
+                                    userStored = deletePrivateInfo(userStored);
                                     res.status(200).send({
                                         user: userStored
                                     });
@@ -89,7 +85,10 @@ function login(req, res) {
                                     token : jwt.createToken(issetUser)
                                 });
                             }else{
-                                res.status(200).send(issetUser);
+                                issetUser= deletePrivateInfo(issetUser);
+                                res.status(200).send({
+                                    user: issetUser
+                                });
                             }
 
 
@@ -115,16 +114,14 @@ function login(req, res) {
 }
 
 function updateUser(req, res) {
-    var userId = req.params.id;
-    var update = req.body;
-
-    if(userId != req.user.sub){
+    var userMail = req.params.email;
+    var update = req.body; 
+   if(userMail != req.user.email){
         return res.status(500).send({
             message: 'No tienes permiso para actualizar el usuario'
         });
     }
-
-    User.findByIdAndUpdate(userId, update, {new :true}, (err, userUpdated)=>{
+    User.findOneAndUpdate({ email: userMail.toLowerCase() }, update, {new :true}, (err, userUpdated)=>{
         if(err){
             res.status(500).send({
                 message: 'Error al actualizar usuario'
@@ -135,18 +132,70 @@ function updateUser(req, res) {
                     message: 'No se ha podido actualizar el usuario'
                 });
             }else{
-                res.status(200).send({user:userUpdated});
+                if(update.password){
+                    bcrypt.hash(update.password, null, null, (err, hash) => {
+                        userUpdated.password = hash;
+                        User.findByIdAndUpdate(userUpdated._id, userUpdated, { new: true }, (err, userStored) => {
+                            if (err) {
+                                res.status(500).send({
+                                    message: 'Error al actualizar el usuario'
+                                });
+                            } else {
+                                if (!userStored) {
+                                    res.status(404).send({
+                                        message: 'No se ha actualizado el usuario'
+                                    });
+                                } else {
+                                    res.status(200).send({
+                                        token: jwt.createToken(userStored)
+                                    });
+                                    }
+                            }
+                        })
+                    });
+                }else{
+                        res.status(200).send({ token: jwt.createToken(userUpdated) });
+                    }
+                }
             }
+        });
+}
+
+
+
+function checkEmail(req, res) {
+    var userMail = req.params.email;
+    User.findOne({ email : userMail.toLowerCase() }, (err, existMail) => {
+        if (err) {
+            res.status(404).send({
+                message: 'Error al obtener email'
+            })
+
+        } else {
+            if(existMail){
+                res.status(200).send({
+                    message: existMail.email
+                })
+            }else{
+                res.status(404).send({
+                    message: "No existe el email"
+                });
+            }
+
+
         }
     });
-
 }
-    
 
+function deletePrivateInfo(user){
+    user.password = undefined;
+    user._id = undefined;
+    return user;
+}
 
 module.exports = {
-    pruebas,
     saveUser,
     login,
-    updateUser
+    updateUser,
+    checkEmail
 }

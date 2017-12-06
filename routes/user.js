@@ -7,9 +7,9 @@ var api = express.Router();
 var auth = require('../middlewares/authenticate');
 var checkAdmin = require('../middlewares/isAdmin');
 
-api.get('/pruebauser', auth.ensureAuth ,UserController.pruebas);
+api.get('/checkemail/:email', UserController.checkEmail);
 api.post('/register', UserController.saveUser);
 api.post('/login',UserController.login);
-api.put('/update-user/:id', auth.ensureAuth, UserController.updateUser);
+api.put('/update-user/:email', auth.ensureAuth, UserController.updateUser);
 
 module.exports = api;

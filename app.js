@@ -2,7 +2,8 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var dbconfig = require('./config/db.config');
 var app = express();
-var port = process.env.PORT|| 4200;
+var portused= 3000;
+var port = process.env.PORT|| portused;
 //Conectar a la db
 dbconfig.connectdb();
 
@@ -32,7 +33,7 @@ app.use('/api', user_routes);
 
 //inicio app
 app.listen(port, () => {
-    console.log("Servidor funcionando en 4200");
+    console.log("Servidor funcionando en ", portused);
 });
 
 module.exports = app;
